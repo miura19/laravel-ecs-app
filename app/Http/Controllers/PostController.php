@@ -13,7 +13,7 @@ class PostController extends Controller
     public function index()
     {
         $posts = Post::with('user')->get();
-        return view('post', compact('posts'));
+        return view('post-index', compact('posts'));
     }
 
     /**
@@ -48,7 +48,7 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        //
+        return view('post-show', compact('post'));
     }
 
     /**
@@ -56,7 +56,7 @@ class PostController extends Controller
      */
     public function edit(Post $post)
     {
-        //
+        return view('post-edit', compact('post'));
     }
 
     /**
@@ -64,7 +64,16 @@ class PostController extends Controller
      */
     public function update(Request $request, Post $post)
     {
-        //
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $post->title = $request->input('title');
+        $post->content = $request->input('content');
+        $post->save();
+
+        return redirect()->route('post.index')->with('success', 'Post updated successfully.');
     }
 
     /**
@@ -72,6 +81,7 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
-        //
+        $post->delete();
+        return redirect()->route('post.index')->with('success', 'Post deleted successfully.');
     }
 }

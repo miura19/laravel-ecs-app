@@ -11,6 +11,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/post', [App\Http\Controllers\PostController::class, 'index'])->name('post.index');
     Route::get('/post/create', [App\Http\Controllers\PostController::class, 'create'])->name('post.create');
     Route::post('/post', [App\Http\Controllers\PostController::class, 'store'])->name('post.store');
+    Route::get('/post/{post}', [App\Http\Controllers\PostController::class, 'show'])->name('post.show');
+    Route::get('/post/{post}/edit', [App\Http\Controllers\PostController::class, 'edit'])->name('post.edit');
+    Route::put('/post/{post}', [App\Http\Controllers\PostController::class, 'update'])->name('post.update');
+    Route::delete('/post/{post}', [App\Http\Controllers\PostController::class, 'destroy'])->name('post.destroy');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
