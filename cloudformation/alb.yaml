@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: ALB and Target Group for Laravel ECS application
+
+Parameters:
+  NetworkStackName:
+    Type: String
+    Default: laravel-ecs-network-cfn-test
+    Description: Network CloudFormation stack name
+
+Resources:
+  CFnAlb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: laravel-ecs-alb-cfn-test
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - Fn::ImportValue: !Sub ${NetworkStackName}-AlbSecurityGroupId
+      Subnets:
+        - Fn::ImportValue: !Sub ${NetworkStackName}-PublicSubnetA
+        - Fn::ImportValue: !Sub ${NetworkStackName}-PublicSubnetC
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-alb-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  CFnTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: laravel-ecs-tg-cfn-test
+      VpcId:
+        Fn::ImportValue: !Sub ${NetworkStackName}-VpcId
+      Protocol: HTTP
+      Port: 80
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      Matcher:
+        HttpCode: "200"
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-tg-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  CFnAlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref CFnAlb
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref CFnTargetGroup
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-alb-listener-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+Outputs:
+  AlbArn:
+    Description: ALB ARN
+    Value: !Ref CFnAlb
+    Export:
+      Name: !Sub ${AWS::StackName}-AlbArn
+
+  TargetGroupArn:
+    Description: Target Group ARN
+    Value: !Ref CFnTargetGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-TargetGroupArn
+
+  AlbListenerArn:
+    Description: ALB Listener ARN
+    Value: !Ref CFnAlbListener
+    Export:
+      Name: !Sub ${AWS::StackName}-AlbListenerArn
+
+  AlbDnsName:
+    Description: ALB DNS Name
+    Value: !GetAtt CFnAlb.DNSName
