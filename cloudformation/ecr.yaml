@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: ECR Repository for Laravel ECS application
+
+Resources:
+  LaravelAppRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: laravel-ecs-app-cfn-test
+
+      ImageTagMutability: MUTABLE
+
+      ImageScanningConfiguration:
+        ScanOnPush: false
+
+      EncryptionConfiguration:
+        EncryptionType: AES256
+
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-app-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+Outputs:
+  RepositoryUri:
+    Description: ECR Repository URI
+    Value: !GetAtt LaravelAppRepository.RepositoryUri
+
+  RepositoryArn:
+    Description: ECR Repository ARN
+    Value: !GetAtt LaravelAppRepository.Arn
