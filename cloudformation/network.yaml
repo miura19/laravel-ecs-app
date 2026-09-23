@@ -1,0 +1,413 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Create VPC and Network Resources
+
+Parameters:
+
+  VpcCidr:
+    Type: String
+    Default: "10.0.0.0/16"
+
+  PubSubnetACidr:
+    Type: String
+    Default: "10.0.1.0/24"
+
+  PubSubnetCCidr:
+    Type: String
+    Default: "10.0.2.0/24"
+
+  PriSubnetACidr:
+    Type: String
+    Default: "10.0.11.0/24"
+
+  PriSubnetCCidr:
+    Type: String
+    Default: "10.0.12.0/24"
+
+
+Resources:
+
+  # =========================
+  # VPC
+  # =========================
+
+  CFnVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpc-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+
+  # =========================
+  # Public Subnet
+  # =========================
+
+  CFnPubSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "ap-northeast-1a"
+      VpcId: !Ref CFnVpc
+      CidrBlock: !Ref PubSubnetACidr
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-public-subnet-a-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  CFnPubSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "ap-northeast-1c"
+      VpcId: !Ref CFnVpc
+      CidrBlock: !Ref PubSubnetCCidr
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-public-subnet-c-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+
+  # =========================
+  # Private Subnet
+  # =========================
+
+  CFnPriSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "ap-northeast-1a"
+      VpcId: !Ref CFnVpc
+      CidrBlock: !Ref PriSubnetACidr
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-private-subnet-a-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  CFnPriSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: "ap-northeast-1c"
+      VpcId: !Ref CFnVpc
+      CidrBlock: !Ref PriSubnetCCidr
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-private-subnet-c-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+
+  # =========================
+  # Internet Gateway
+  # =========================
+
+  CFnIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-igw-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref CFnVpc
+      InternetGatewayId: !Ref CFnIGW
+
+
+  # =========================
+  # Public Route Table
+  # =========================
+
+  PubRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CFnVpc
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-public-rt-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  PubRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PubRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref CFnIGW
+
+  PubRouteTableAssociationA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CFnPubSubnetA
+      RouteTableId: !Ref PubRouteTable
+
+  PubRouteTableAssociationC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CFnPubSubnetC
+      RouteTableId: !Ref PubRouteTable
+
+
+  # =========================
+  # Private Route Table
+  # =========================
+
+  PriRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CFnVpc
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-private-rt-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  PriRouteTableAssociationA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CFnPriSubnetA
+      RouteTableId: !Ref PriRouteTable
+
+  PriRouteTableAssociationC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CFnPriSubnetC
+      RouteTableId: !Ref PriRouteTable
+
+
+  # =========================
+  # Security Group - ALB
+  # =========================
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: laravel-ecs-alb-sg-cfn-test
+      GroupDescription: ALB Security Group
+      VpcId: !Ref CFnVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-alb-sg-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+
+  # =========================
+  # Security Group - ECS
+  # =========================
+
+  EcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: laravel-ecs-ecs-sg-cfn-test
+      GroupDescription: ECS Security Group
+      VpcId: !Ref CFnVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-ecs-sg-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  # =========================
+  # Security Group - VPC Endpoint
+  # =========================
+
+  VpceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: laravel-ecs-vpce-sg-cfn-test
+      GroupDescription: VPC Endpoint Security Group
+      VpcId: !Ref CFnVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref EcsSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpce-sg-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+
+  # =========================
+  # VPC Endpoint - ECR API
+  # =========================
+
+  EcrApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CFnVpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref CFnPriSubnetA
+        - !Ref CFnPriSubnetC
+      SecurityGroupIds:
+        - !Ref VpceSecurityGroup
+
+
+  # =========================
+  # VPC Endpoint - ECR DKR
+  # =========================
+
+  EcrDkrEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CFnVpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref CFnPriSubnetA
+        - !Ref CFnPriSubnetC
+      SecurityGroupIds:
+        - !Ref VpceSecurityGroup
+
+
+  # =========================
+  # VPC Endpoint - S3
+  # =========================
+
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CFnVpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PriRouteTable
+
+
+  # =========================
+  # VPC Endpoint - CloudWatch Logs
+  # =========================
+
+  LogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CFnVpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref CFnPriSubnetA
+        - !Ref CFnPriSubnetC
+      SecurityGroupIds:
+        - !Ref VpceSecurityGroup
+
+
+  # =========================
+  # VPC Endpoint - SSM
+  # =========================
+
+  SsmEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CFnVpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ssm
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref CFnPriSubnetA
+        - !Ref CFnPriSubnetC
+      SecurityGroupIds:
+        - !Ref VpceSecurityGroup
+
+
+  # =========================
+  # VPC Endpoint - SSMMessages
+  # =========================
+
+  SsmMessagesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref CFnVpc
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ssmmessages
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref CFnPriSubnetA
+        - !Ref CFnPriSubnetC
+      SecurityGroupIds:
+        - !Ref VpceSecurityGroup
+
+
+Outputs:
+
+  VpcId:
+    Description: VPC ID
+    Value: !Ref CFnVpc
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+
+  PublicSubnetA:
+    Description: Public Subnet A ID
+    Value: !Ref CFnPubSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicSubnetA
+
+  PublicSubnetC:
+    Description: Public Subnet C ID
+    Value: !Ref CFnPubSubnetC
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicSubnetC
+
+  PrivateSubnetA:
+    Description: Private Subnet A ID
+    Value: !Ref CFnPriSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-PrivateSubnetA
+
+  PrivateSubnetC:
+    Description: Private Subnet C ID
+    Value: !Ref CFnPriSubnetC
+    Export:
+      Name: !Sub ${AWS::StackName}-PrivateSubnetC
+
+  AlbSecurityGroupId:
+    Description: ALB Security Group ID
+    Value: !Ref AlbSecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-AlbSecurityGroupId
+
+  EcsSecurityGroupId:
+    Description: ECS Security Group ID
+    Value: !Ref EcsSecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-EcsSecurityGroupId
+
+  VpceSecurityGroupId:
+    Description: VPC Endpoint Security Group ID
+    Value: !Ref VpceSecurityGroup
+    Export:
+      Name: !Sub ${AWS::StackName}-VpceSecurityGroupId
