@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  RDS MySQL environment for Laravel ECS application
+
+Parameters:
+  NetworkStackName:
+    Type: String
+    Default: laravel-ecs-network-cfn-test
+    Description: Name of the network CloudFormation stack
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+
+  DBName:
+    Type: String
+    Default: laravel_ecs_db
+
+  MasterUsername:
+    Type: String
+    Default: admin
+
+  MasterUserPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+
+Resources:
+  # ------------------------------------------------------------
+  # RDS Security Group
+  # ------------------------------------------------------------
+  RdsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Laravel RDS MySQL
+      VpcId:
+        Fn::ImportValue:
+          Fn::Sub: "${NetworkStackName}-VpcId"
+
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Sub: "${NetworkStackName}-EcsSecurityGroupId"
+
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-rds-sg-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+  # ------------------------------------------------------------
+  # RDS Subnet Group
+  # ------------------------------------------------------------
+  RdsSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for Laravel RDS
+
+      SubnetIds:
+        - Fn::ImportValue:
+            Fn::Sub: "${NetworkStackName}-PrivateSubnetA"
+        - Fn::ImportValue:
+            Fn::Sub: "${NetworkStackName}-PrivateSubnetC"
+
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-rds-subnet-group-cfn-test
+
+  # ------------------------------------------------------------
+  # RDS Instance
+  # ------------------------------------------------------------
+  RdsInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !Ref DBInstanceClass
+
+      Engine: mysql
+      EngineVersion: "8.4.9"
+
+      DBName: !Ref DBName
+
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterUserPassword
+
+      AllocatedStorage: 20
+      MaxAllocatedStorage: 1000
+      StorageType: gp2
+
+      StorageEncrypted: true
+
+      DBSubnetGroupName: !Ref RdsSubnetGroup
+
+      VPCSecurityGroups:
+        - !GetAtt RdsSecurityGroup.GroupId
+
+      PubliclyAccessible: false
+
+      MultiAZ: false
+
+      BackupRetentionPeriod: 1
+
+      CopyTagsToSnapshot: true
+
+      DeletionProtection: false
+
+      AutoMinorVersionUpgrade: true
+
+      EnableIAMDatabaseAuthentication: false
+
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-database-cfn-test
+        - Key: Env
+          Value: CFn-test
+
+Outputs:
+  RdsInstanceIdentifier:
+    Description: RDS instance identifier
+    Value: !Ref RdsInstance
+
+  RdsEndpoint:
+    Description: RDS endpoint
+    Value: !GetAtt RdsInstance.Endpoint.Address
+
+  RdsPort:
+    Description: RDS port
+    Value: !GetAtt RdsInstance.Endpoint.Port
+
+  RdsSecurityGroupId:
+    Description: RDS security group ID
+    Value: !GetAtt RdsSecurityGroup.GroupId
+
+  RdsSubnetGroupName:
+    Description: RDS subnet group name
+    Value: !Ref RdsSubnetGroup

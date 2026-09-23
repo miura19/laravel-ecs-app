@@ -3,7 +3,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Create VPC and Network Resources
 
 Parameters:
-
   VpcCidr:
     Type: String
     Default: "10.0.0.0/16"
@@ -24,9 +23,7 @@ Parameters:
     Type: String
     Default: "10.0.12.0/24"
 
-
 Resources:
-
   # =========================
   # VPC
   # =========================
@@ -42,7 +39,6 @@ Resources:
           Value: laravel-ecs-vpc-cfn-test
         - Key: Env
           Value: CFn-test
-
 
   # =========================
   # Public Subnet
@@ -72,7 +68,6 @@ Resources:
         - Key: Env
           Value: CFn-test
 
-
   # =========================
   # Private Subnet
   # =========================
@@ -101,7 +96,6 @@ Resources:
         - Key: Env
           Value: CFn-test
 
-
   # =========================
   # Internet Gateway
   # =========================
@@ -120,7 +114,6 @@ Resources:
     Properties:
       VpcId: !Ref CFnVpc
       InternetGatewayId: !Ref CFnIGW
-
 
   # =========================
   # Public Route Table
@@ -156,7 +149,6 @@ Resources:
       SubnetId: !Ref CFnPubSubnetC
       RouteTableId: !Ref PubRouteTable
 
-
   # =========================
   # Private Route Table
   # =========================
@@ -183,7 +175,6 @@ Resources:
       SubnetId: !Ref CFnPriSubnetC
       RouteTableId: !Ref PriRouteTable
 
-
   # =========================
   # Security Group - ALB
   # =========================
@@ -207,7 +198,6 @@ Resources:
           Value: laravel-ecs-alb-sg-cfn-test
         - Key: Env
           Value: CFn-test
-
 
   # =========================
   # Security Group - ECS
@@ -257,7 +247,6 @@ Resources:
         - Key: Env
           Value: CFn-test
 
-
   # =========================
   # VPC Endpoint - ECR API
   # =========================
@@ -274,7 +263,11 @@ Resources:
         - !Ref CFnPriSubnetC
       SecurityGroupIds:
         - !Ref VpceSecurityGroup
-
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpce-ecr.api-cfn-test
+        - Key: Env
+          Value: CFn-test
 
   # =========================
   # VPC Endpoint - ECR DKR
@@ -292,7 +285,11 @@ Resources:
         - !Ref CFnPriSubnetC
       SecurityGroupIds:
         - !Ref VpceSecurityGroup
-
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpce-ecr.dkr-cfn-test
+        - Key: Env
+          Value: CFn-test
 
   # =========================
   # VPC Endpoint - S3
@@ -306,7 +303,11 @@ Resources:
       VpcEndpointType: Gateway
       RouteTableIds:
         - !Ref PriRouteTable
-
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpce-s3-cfn-test
+        - Key: Env
+          Value: CFn-test
 
   # =========================
   # VPC Endpoint - CloudWatch Logs
@@ -324,8 +325,11 @@ Resources:
         - !Ref CFnPriSubnetC
       SecurityGroupIds:
         - !Ref VpceSecurityGroup
-
-
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpce-logs-cfn-test
+        - Key: Env
+          Value: CFn-test
   # =========================
   # VPC Endpoint - SSM
   # =========================
@@ -342,7 +346,11 @@ Resources:
         - !Ref CFnPriSubnetC
       SecurityGroupIds:
         - !Ref VpceSecurityGroup
-
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpce-ssm-cfn-test
+        - Key: Env
+          Value: CFn-test
 
   # =========================
   # VPC Endpoint - SSMMessages
@@ -360,10 +368,13 @@ Resources:
         - !Ref CFnPriSubnetC
       SecurityGroupIds:
         - !Ref VpceSecurityGroup
-
+      Tags:
+        - Key: Name
+          Value: laravel-ecs-vpce-ssmmessages-cfn-test
+        - Key: Env
+          Value: CFn-test
 
 Outputs:
-
   VpcId:
     Description: VPC ID
     Value: !Ref CFnVpc
